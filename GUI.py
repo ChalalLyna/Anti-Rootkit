@@ -1,15 +1,65 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 import os
-from FileAnalysis import analyze_file  # Importer la fonction d'analyse
-
+import subprocess
+from tkinter import Scrollbar
 
 def start_machine_scan():
     """
-    Lancer une analyse complète de la machine.
+    Lancer une analyse complète de la machine en exécutant le fichier C++.
     """
-    messagebox.showinfo("Machine Scan", "Machine scan started!")
+    try:
+        # Get the directory where the script is located
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        
+        # Path to cpp in the same directory as the script
+        executable_path = os.path.join(script_dir, "user-app_library_memory.exe")
+        
+        # Exécuter le fichier cpp et capturer la sortie
+        result = subprocess.run(
+            [executable_path], 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True
+        )
+        
+        # Vérifiez s'il y a une erreur
+        if result.returncode != 0:
+            error_message = f"Erreur lors de l'exécution :\n{result.stderr}"
+            show_scrollable_message("Erreur", error_message)
+        else:
+            output_message = f"Sortie de l'analyse :\n{result.stdout}"
+            show_scrollable_message("Résultat de l'analyse", output_message)
+    
+    except FileNotFoundError:
+        show_scrollable_message("Erreur", "Le fichier exécutable cpp est introuvable.")
+    except Exception as e:
+        show_scrollable_message("Erreur", f"Une erreur inattendue s'est produite : {str(e)}")
 
+def show_scrollable_message(title, message):
+    """
+    Affiche un message dans une fenêtre Toplevel avec une zone de texte scrollable.
+    """
+    # Création de la fenêtre Toplevel
+    top = tk.Toplevel()
+    top.title(title)
+    
+    # Zone de texte pour afficher le message
+    text_widget = tk.Text(top, wrap=tk.WORD, width=80, height=20, bg="black", fg="green", font=("Courier", 10))
+    text_widget.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+    
+    # Ajout d'une barre de défilement
+    scrollbar = Scrollbar(top, command=text_widget.yview)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+    text_widget.config(yscrollcommand=scrollbar.set)
+    
+    # Insertion du message dans la zone de texte
+    text_widget.insert(tk.END, message)
+    text_widget.config(state=tk.DISABLED)  # Rendre la zone de texte non modifiable
+    
+    # Bouton pour fermer la fenêtre
+    close_button = tk.Button(top, text="Fermer", command=top.destroy, bg="red", fg="white")
+    close_button.pack(pady=10)
 
 def analyze_file_gui():
     """
@@ -19,7 +69,6 @@ def analyze_file_gui():
     if file_path:
         # Appeler la fonction d'analyse de fichier depuis FileAnalysis.py
         analyze_file(file_path)
-
 
 def analyze_directory():
     """
@@ -33,7 +82,7 @@ def analyze_directory():
             # Filtrer les fichiers uniquement
             files = [f for f in files if os.path.isfile(os.path.join(directory_path, f))]
             if not files:
-                messagebox.showinfo("Analyse de répertoire", "Aucun fichier trouvé dans le répertoire.")
+                show_scrollable_message("Analyse de répertoire", "Aucun fichier trouvé dans le répertoire.")
                 return
             
             # Analyse de chaque fichier
@@ -41,10 +90,9 @@ def analyze_directory():
                 file_path = os.path.join(directory_path, file)
                 analyze_file(file_path)
             
-            messagebox.showinfo("Analyse de répertoire", "L'analyse du répertoire est terminée.")
+            show_scrollable_message("Analyse de répertoire", "L'analyse du répertoire est terminée.")
         except Exception as e:
-            messagebox.showerror("Erreur", f"Erreur lors de l'analyse du répertoire : {str(e)}")
-
+            show_scrollable_message("Erreur", f"Erreur lors de l'analyse du répertoire : {str(e)}")
 
 # Création de la fenêtre principale
 root = tk.Tk()
